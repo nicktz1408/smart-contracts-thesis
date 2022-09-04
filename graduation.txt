@@ -1,0 +1,154 @@
+namespace NSstudentContractD
+
+import org.accordproject.Contract.* 
+import org.accordproject.runtime.* 
+
+asset studentContractD extends Clause{}
+
+transaction InputContract extends Request{
+	o Student s  
+	o University u  
+	o Integer cp  
+	o Thesis_status thstatus  
+	o Integer ectscoll  
+	o Integer cfcompleted  
+}
+
+
+transaction Response {}
+participant Student {
+	o String name
+}
+
+participant University {
+	o String name
+}
+
+participant UniversityDepartment {
+	o String name
+	o University uni
+}
+
+concept Compulsory_courses_passed {
+	o Integer courses_passed
+	o Integer courses_needed
+}
+
+concept Thesis_completed {
+	o Thesis_status thesis_status
+	o Thesis_status thesis_status_needed
+}
+
+concept ECTS_passed {
+	o Integer ects
+	o Integer ects_needed
+}
+
+concept Course_flows_completed {
+	o Integer course_flows_passed
+	o Integer course_flows_needed
+}
+
+concept Graduation {
+	o Degree degree
+}
+
+asset Degree {
+	o String degree_info
+}
+
+
+enum Compulsory_course {
+	o MA8HMATIKH_ANALYSH_I
+	o EISAGWGH_STHN_PLHROFORIKH
+	o GRAMMIKH_ALGEBRA
+	o DIAKRITA_MA8HMATIKA
+	o BASIKES_ARXES_PROGRAMMATISMOY
+	o MA8HMATIKH_ANALYSH_II
+	o PI8ANOTHTES_KAI_STATISTIKH
+	o DOMES_DEDOMENWN
+	o PSHFIAKH_SXEDIASH
+	o THEWRIA_YPOLOGISMOY
+	o EFARMOSMENA_MA8HMATIKA
+	o ARI8MHTIKH_ANALYSH
+	o HLEKTRONIKA
+	o ANTIKEIMENOSTREFHS_PROGRAMMATISMOS
+	o ARXITEKTONIKH_YPOLOGISTWN
+	o GLWSSES_PROGRAMMATISMOY_KAI_METAGLWTTISTES
+	o TEXNHTH_NOHMOSYNH
+	o ALGORI8MOI
+	o EPIKOINWNIA_AN8RWPOY_YPOLOGISTH
+	o PSHFIAKES_EPIKOINWNIES
+	o SHMATA_KAI_SYSTHMATA
+	o DIKTYA_EPIKOINWNIWN
+	o BASEIS_DEDOMENWN
+	o LEITOYRGIKA_SYSTHMATA
+	o MHXANIKH_LOGISMIKOY
+}
+  
+enum Thesis_status {
+	o complete
+	o incomplete
+}
+  
+enum Course_flow {
+	o Texnhth_Nohmosynh
+	o Diaxeirish_Dedomenwn_kai_Istoy
+	o Texnologies_logismikoy
+	o Texnologies_Ma8hshs
+	o Episthmonikh_Ypologistikh
+	o Diktya_Epikoinwniwn_kai_Asfaleia_Systhmatwn
+	o Ypologistika_kai_Epikoinwniaka_Systhmata
+	o Pshfiaka_Mesa_Ypologistikh_Nohmosynh
+	o Rompotikh_Aytonoma_Systhmata
+}
+  
+namespace NSstudentContractD
+
+import org.accordproject.time.TemporalUnit
+import org.accordproject.time.*
+
+contract studentContractC over studentContractD {
+	clause myclause(request : InputContract) : Response {            
+		let ud = UniversityDepartment { 
+		  		name : " CSDAuth",
+		  		uni : request.u
+			};
+			
+		let d = Degree { 
+		  		degree_info : "undergraduate informatics degree"
+			};
+			
+		let comp_passed = Compulsory_courses_passed { 
+		  		courses_passed : request.cp,
+		  		courses_needed : 25
+			};
+			
+		let thesis_completed = Thesis_completed { 
+		  		thesis_status : request.thstatus,
+		  		thesis_status_needed : Thesis_status(complete)
+			};
+			
+		let ects_passed = ECTS_passed { 
+		  		ects : request.ectscoll,
+		  		ects_needed : 240
+			};
+			
+		let course_flows_completed = Course_flows_completed { 
+		  		course_flows_passed : request.cfcompleted,
+		  		course_flows_needed : 1
+			};
+			
+		let graduation = Graduation { 
+		  		degree : d
+			};
+			
+            obl o1 = O(s, ud, comp_passed.courses_passed>=comp_passed.courses_needed, Happens(comp_passed)); 
+            obl o2 = O(s, ud, thesis_completed.thesis_status==thesis_completed.thesis_status_needed, Happens(thesis_completed)); 
+            obl o3 = O(s, ud, ects_passed.ects>=ects_passed.ects_needed, Happens(ects_passed)); 
+            obl o4 = O(s, ud, course_flows_completed.course_flows_passed>=course_flows_completed.course_flows_needed, Happens(course_flows_completed)); 
+            obl o5 = O(ud, s, comp_passed and thesis_completed and ects_passed and course_flows_completed, Happens(graduation)); 
+		return Response{}
+	}
+}
+

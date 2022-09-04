@@ -1,0 +1,34 @@
+Domain studentContractD
+	Student isA Role with name:String;
+	University isA Role with name:String;
+	UniversityDepartment isA Role with name:String, uni:University;
+	
+	Compulsory_courses_passed isAn Event with courses_passed:Number, courses_needed:Number;
+	Thesis_completed isAn Event with thesis_status:Thesis_status, thesis_status_needed:Thesis_status;
+	ECTS_passed isAn Event with ects: Number, ects_needed:Number;
+	Course_flows_completed isAn Event with course_flows_passed:Number, course_flows_needed:Number;
+	Degree isAn Asset with degree_info:String;
+	Graduation isAn Event with degree:Degree;
+
+	Compulsory_course isAn Enumeration(MA8HMATIKH_ANALYSH_I,EISAGWGH_STHN_PLHROFORIKH,GRAMMIKH_ALGEBRA,DIAKRITA_MA8HMATIKA,BASIKES_ARXES_PROGRAMMATISMOY,MA8HMATIKH_ANALYSH_II,PI8ANOTHTES_KAI_STATISTIKH,DOMES_DEDOMENWN,PSHFIAKH_SXEDIASH,THEWRIA_YPOLOGISMOY,EFARMOSMENA_MA8HMATIKA,ARI8MHTIKH_ANALYSH,HLEKTRONIKA,ANTIKEIMENOSTREFHS_PROGRAMMATISMOS,ARXITEKTONIKH_YPOLOGISTWN,GLWSSES_PROGRAMMATISMOY_KAI_METAGLWTTISTES,TEXNHTH_NOHMOSYNH,ALGORI8MOI,EPIKOINWNIA_AN8RWPOY_YPOLOGISTH,PSHFIAKES_EPIKOINWNIES,SHMATA_KAI_SYSTHMATA,DIKTYA_EPIKOINWNIWN,BASEIS_DEDOMENWN,LEITOYRGIKA_SYSTHMATA,MHXANIKH_LOGISMIKOY);
+	Thesis_status isAn Enumeration(complete,incomplete);
+	Course_flow isAn Enumeration(Texnhth_Nohmosynh,Diaxeirish_Dedomenwn_kai_Istoy,Texnologies_logismikoy,Texnologies_Ma8hshs,Episthmonikh_Ypologistikh,Diktya_Epikoinwniwn_kai_Asfaleia_Systhmatwn,Ypologistika_kai_Epikoinwniaka_Systhmata,Pshfiaka_Mesa_Ypologistikh_Nohmosynh,Rompotikh_Aytonoma_Systhmata);
+endDomain
+
+Contract studentContractC(s:Student, u:University, cp:Number, thstatus:Thesis_status, ectscoll:Number, 
+	cfcompleted:Number)
+Declarations
+	ud: UniversityDepartment with name:=" CSDAuth", uni:=u;
+	d: Degree with degree_info:="undergraduate informatics degree";
+	comp_passed: Compulsory_courses_passed with courses_passed:= cp, courses_needed:= 25;
+	thesis_completed: Thesis_completed with thesis_status:= thstatus, thesis_status_needed:= Thesis_status(complete);
+	ects_passed: ECTS_passed with ects:= ectscoll, ects_needed:= 240;
+	course_flows_completed: Course_flows_completed with course_flows_passed:= cfcompleted, course_flows_needed:= 1;
+	graduation: Graduation with degree:= d; 
+Obligations
+	o1: O(s,ud,comp_passed.courses_passed >= comp_passed.courses_needed,Happens(comp_passed));
+	o2: O(s,ud,thesis_completed.thesis_status == thesis_completed.thesis_status_needed,Happens(thesis_completed));
+	o3: O(s,ud,ects_passed.ects >= ects_passed.ects_needed,Happens(ects_passed));
+	o4: O(s,ud,course_flows_completed.course_flows_passed >= course_flows_completed.course_flows_needed,Happens(course_flows_completed));
+	o5: O(ud,s,comp_passed and thesis_completed and ects_passed and course_flows_completed,Happens(graduation));
+endContract

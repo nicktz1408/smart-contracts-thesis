@@ -1,0 +1,133 @@
+namespace NSmeatSaleDomain
+
+import org.accordproject.contract.* 
+import org.accordproject.runtime.* 
+
+asset meatSaleDomain extends Clause{}
+
+transaction InputContract extends Request{
+	o Buyer buyer  
+	o Seller seller  
+	o Integer qnt  
+	o MeatQuality qlt  
+	o Integer amt  
+	o Currency curr  
+	o DateTime payDueDate  
+	o String delAdd  
+	o DateTime effDate  
+	o Integer delDueDateDays  
+	o Integer interestRate  
+}
+
+
+transaction Response {}
+participant Seller {
+	o String returnAddress
+	o String name
+}
+
+participant Buyer {
+	o String warehouse
+}
+
+concept Delivered {
+	o Meat item
+	o String deliveryAddress
+	o DateTime delDueDate
+}
+
+concept Paid {
+	o Integer amount
+	o Currency currency
+	o Buyer from
+	o Seller to
+	o DateTime payDueDate
+}
+
+concept PaidLate {
+	o Integer amount
+	o Currency currency
+	o Buyer from
+	o Seller to
+}
+
+concept Disclosed {
+}
+
+asset PerishableGood {
+	o Integer quantity
+	o MeatQuality quality
+}
+
+asset Meat extends PerishableGood{
+}
+
+
+enum Currency {
+	o CAD
+	o USD
+	o EUR
+}
+  
+enum MeatQuality {
+	o PRIME
+	o AAA
+	o AA
+	o A
+}
+  
+namespace NSmeatSaleDomain
+
+contract MeatSale over meatSaleDomain {
+	clause myclause(request : InputContract) : Response {
+		let goods = Meat { 
+		  		quantity : request.qnt,
+		  		quality : request.qlt
+			};
+			
+		let delivered = Delivered { 
+		  		item : goods,
+		  		deliveryAddress : request.delAdd,
+		  		delDueDate : Date.add(request.effDate, request.delDueDateDays, days)
+			};
+			
+		let paidLate = PaidLate { 
+		  		amount : (1 + request.interestRate / Math.abs(2)),
+		  		currency : request.curr,
+		  		from : request.buyer,
+		  		to : request.seller
+			};
+			
+		let paid = Paid { 
+		  		amount : request.amt,
+		  		currency : request.curr,
+		  		from : request.buyer,
+		  		to : request.seller,
+		  		payDueDate : request.payDueDate
+			};
+			
+		let disclosed = Disclosed { 
+			};
+			
+		pre IsOwner(goods, seller);
+		post IsOwner(goods, buyer) and not ((IsOwner(goods, seller)));
+		obl delivery = O(seller, buyer, true, WhappensBefore(delivered, delivered.delDueDate)); 
+		obl payment = O(buyer, seller, true, WhappensBefore(paid, paid.payDueDate)); 
+		obl latePayment = Happens(Violated(obligations.payment)) -> O(buyer, seller, true, Happens(paidLate)); 
+		sobl so1 = O(seller, buyer, true, not (WhappensBefore(disclosed, Date.add(Activated(self), 6, months)))); 
+		sobl so2 = O(buyer, seller, true, not (WhappensBefore(disclosed, Date.add(Activated(self), 6, months)))); 
+		pow suspendDelivery = Happens(Violated(obligations.payment)) -> P(buyer, seller, true, Suspended(obligations.delivery)); 
+		pow resumeDelivery = HappensWithin(paidLate, Suspension(obligations.delivery)) -> P(seller, buyer, true, Resumed(obligations.delivery)); 
+		pow terminateContract = Happens(Violated(obligations.delivery)) -> P(seller, buyer, true, Terminated(self)); 
+		constr not ((IsEqual(buyer, seller)));
+		constr CannotBeAssigned(suspendDelivery);
+		constr CannotBeAssigned(resumeDelivery);
+		constr CannotBeAssigned(terminateContract);
+		constr CannotBeAssigned(delivery);
+		constr CannotBeAssigned(payment);
+		constr CannotBeAssigned(latePayment);
+		constr delivered.delDueDate<paid.payDueDate;
+		return Response{}
+	}
+}
+
